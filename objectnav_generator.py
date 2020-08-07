@@ -22,7 +22,6 @@ that aren't part of a floor.
 """
 ISLAND_RADIUS_LIMIT = 1.5
 
-
 def _ratio_sample_rate(ratio: float, ratio_threshold: float) -> float:
     r"""Sampling function for aggressive filtering of straight-line
     episodes with shortest path geodesic distance to Euclid distance ratio
@@ -42,11 +41,13 @@ def is_compatible_episode(
 ):
     # check height difference to assure s and  tar are from same floor
     tar = []
+    tar_id = []
     for i in range(len(t)):
-        if np.abs(s[1] - t[i][1]) > 0.8:
+        if np.abs(s[1] - t[i][1]) > 0.5:
             continue
         else:
             tar.append(t[i])
+            tar_id.append(id[i])
     if len(tar) == 0:
         return False, 0, 0, 0, 0
 
@@ -59,7 +60,7 @@ def is_compatible_episode(
     index = euclid_dist_arr.index(min(euclid_dist_arr))
     target_position_episode = tar[index]
     # print(id[index], type(id[index]))
-    closest_goal_id = int(re.findall(r"\d+",id[index])[0])
+    closest_goal_id = int(re.findall(r"\d+",tar_id[index])[0])
     # print(euclid_dist_arr)
     # print(euclid_dist)
     # print(id, closest_goal_id))
@@ -106,6 +107,7 @@ def _create_episode(
 
 def generate_objectnav_episode(
     sim: Simulator,
+    task_category,
     num_episodes: int = -1,
     is_gen_shortest_path: bool = True,
     shortest_path_success_distance: float = 0.2,
@@ -151,14 +153,15 @@ def generate_objectnav_episode(
     target = dict()
     for obj in scene.objects:
         if obj is not None:
-            print(
-                f"Object id:{obj.id}, category:{obj.category.name()}, Index:{obj.category.index()}"
-                f" center:{obj.aabb.center}, dims:{obj.aabb.sizes}"
-            )
-            if obj.category.index() in target:
-                target[obj.category.index()].append(obj)
-            else:
-                target[obj.category.index()] = [obj]
+            # print(
+            #     f"Object id:{obj.id}, category:{obj.category.name()}, Index:{obj.category.index()}"
+            #     f" center:{obj.aabb.center}, dims:{obj.aabb.sizes}"
+            # )
+            if obj.category.name() in task_category.keys():
+                if obj.category.index() in target:
+                    target[obj.category.index()].append(obj)
+                else:
+                    target[obj.category.index()] = [obj]
     print("target len:", len(target))
 
     for i in target:
@@ -175,7 +178,7 @@ def generate_objectnav_episode(
 
         for retry in range(number_retries_per_target):
             source_position = sim.sample_navigable_point()
-            source_position[1] = 0.07245
+            # source_position[1] = High
 
             is_compatible, dist, euclid, closest_goal_object_id, target_position_episode = is_compatible_episode(
                 source_position,
@@ -191,8 +194,6 @@ def generate_objectnav_episode(
                 break
 
         if is_compatible:
-            # source_position = sim.sample_navigable_point()
-
             angle = np.random.uniform(0, 2 * np.pi)
             source_rotation = [0, np.sin(angle / 2), 0, np.cos(angle / 2)]
 
@@ -224,7 +225,7 @@ def generate_objectnav_episode(
                 radius=shortest_path_success_distance,
                 info={"geodesic_distance": dist, "euclidean_distance": euclid, "closest_goal_object_id": closest_goal_object_id},
             )
-
+            print("source_position: ", source_position)
             print("episode finish!")
             yield episode
 
@@ -233,21 +234,23 @@ def generate_objectnav_episode(
 
 
 def generate_objectnav_goals_by_category(
-    sim: Simulator
+    sim: Simulator,
+    task_category
 ) -> ObjectGoal:
     
     scene = sim.semantic_annotations()
     target = dict()
     for obj in scene.objects:
         if obj is not None:
-            print(
-                f"Object id:{obj.id}, category:{obj.category.name()}, Index:{obj.category.index()}"
-                f" center:{obj.aabb.center}, dims:{obj.aabb.sizes}"
-            )
-            if obj.category.index() in target:
-                target[obj.category.index()].append(obj)
-            else:
-                target[obj.category.index()] = [obj]
+            # print(
+            #     f"Object id:{obj.id}, category:{obj.category.name()}, Index:{obj.category.index()}"
+            #     f" center:{obj.aabb.center}, dims:{obj.aabb.sizes}"
+            # )
+            if obj.category.name() in task_category.keys():
+                if obj.category.index() in target:
+                    target[obj.category.index()].append(obj)
+                else:
+                    target[obj.category.index()] = [obj]
 
     for i in target:
         print("target episode len:", len(target[i]))
@@ -258,16 +261,38 @@ def generate_objectnav_goals_by_category(
 
         goals_by = []
         for j in range(len(target[i])):
-
             goal_by_object = ObjectGoal(
                 position = target[i][j].aabb.center,
+                radius = 0.5,
                 object_id = int(re.findall(r"\d+",target[i][j].id)[0]),
                 object_name = target[i][j].id,
                 object_category = object_category,
                 view_points = [],
             )
-         
+        
             goals_by.append(goal_by_object)       
 
         yield str_goal, goals_by
 
+def generate_objectnav_task_category_id(
+    sim: Simulator,
+    task_category
+):
+    scene = sim.semantic_annotations()
+    target = dict()
+    for obj in scene.objects:
+        if obj is not None:
+            # print(
+            #     f"Object id:{obj.id}, category:{obj.category.name()}, Index:{obj.category.index()}"
+            #     f" center:{obj.aabb.center}, dims:{obj.aabb.sizes}"
+            # )
+            if obj.category.name() in task_category.keys():
+                if obj.category.index() in target:
+                    target[obj.category.index()].append(obj)
+                else:
+                    target[obj.category.index()] = [obj]
+    task_category_id = task_category
+    for i in target:
+        task_category_id[target[i][0].category.name()] = target[i][0].category.index()
+    print(task_category_id)
+    return task_category_id

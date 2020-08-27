@@ -204,8 +204,6 @@ def is_compatible_episode(
 
 t对应多个目标的位姿，与s先进行同一楼层的判定（这里可以讲s的高度确定下来，不需要随机产生），然后再计算欧氏距离，测地距离（规划的避障路径距离），和离s最近的目标id，再对测地距离进行筛选，确定范围和与欧式距离的比例（比例过小说明在一条直线上，过大说明路径过于弯曲）。根据此函数可以设置不同难度的导航任务。
 
-**生成数据集时，机器人的高度，即source_position[1]应设为0.07245，否则在构建Top-downmap时找不到对应的栅格点。**
-
 ### 2. goals_by_category
 
 goals_by_category类型为Dict[str, List[ObjectGoal]]，str为scene_object数组，和ObjectGoal类组成的列表。str可以根据ObjectGoal中的函数重写，f"{os.path.basename(sim.config.SCENE)}_{object_category}"。ObjectGoal类型定义如下：
@@ -278,9 +276,35 @@ category_to_scene_annotation_category_id = {"kite": 1, "microwave": 2, "oven":3,
 python create_objectnav_dataset.py
 ```
 
+## Dataset
 
+使用gibson_habitat_trainval生成的78个语义场景，训练集中每个场景中的goal设置生成1000个episode用于训练，测试集中每个goal设置生成10个episode用于测试，这里的goal根据在Gibson数据集中出现的次数，选择了如下21种出现次数最多的类别：
 
+```python
+"chair",
+"potted plant",
+"sink",
+"vase",
+"book",
+"couch",
+"bed",
+"bottle",
+"dining table",
+"toilet",
+"refrigerator",
+"tv",
+"clock",
+"oven",
+"bowl",
+"cup",
+"bench",
+"microwave",
+"suitcase",
+"umbrella",
+"teddy bear"
+```
 
+Download：[Gibson-objectnav-datasets](https://drive.google.com/file/d/1vypkzXIfGyN42rAjOzjny8AeFaRpWLZW/view?usp=sharing)
 
 
 

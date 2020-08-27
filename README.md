@@ -1,6 +1,6 @@
 # habitat跨场景室内3D仿真平台生成Gibson环境下的objectnav task datasets
 
-##  Datasets 
+##  
 
 对于已有场景数据集，如何生成自己想要的objectnav task dataset，来满足如不同场景、不同episode次数、不同导航距离（从近到远）等需求，需要自己去生成相应的数据集。这里使用Gibson数据集进行objectnav任务，在进行之前需要先通过[3D-Scene-Graph](https://github.com/StanfordVL/3DSceneGraph)获取Gibson的语义信息，参照https://github.com/facebookresearch/habitat-sim#datasets。
 
